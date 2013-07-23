@@ -6,14 +6,19 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.http.HttpResponse;
 import org.apache.http.HttpVersion;
+import org.apache.http.NameValuePair;
+import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
+import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.conn.scheme.PlainSocketFactory;
 import org.apache.http.conn.scheme.Scheme;
@@ -24,6 +29,7 @@ import org.apache.http.entity.mime.content.FileBody;
 import org.apache.http.entity.mime.content.StringBody;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.impl.conn.tsccm.ThreadSafeClientConnManager;
+import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.params.BasicHttpParams;
 import org.apache.http.params.CoreProtocolPNames;
 import org.apache.http.params.HttpParams;
@@ -42,6 +48,7 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
 import android.telephony.TelephonyManager;
+import android.util.Log;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
@@ -52,7 +59,7 @@ import com.mani.fileupload.http.EasySSLSocketFactory;
 public class MainActivity extends Activity {
 
 
-	  String uploadurl = "https://192.168.1.106:4000/upload";
+	  String uploadurl = "http://192.168.0.101:8080/upload";
 	  //String uploadurl = "http://ec2-54-242-153-20.compute-1.amazonaws.com:4000/upload";
 	  ProgressDialog mProgress;
 	  RelativeLayout takeImage;
@@ -103,7 +110,8 @@ public class MainActivity extends Activity {
 	        takeVideo.setOnClickListener(new View.OnClickListener() {
 				@Override
 				public void onClick(View arg0) {
-					showCameraVideo();
+                    File file = new File ("mnt/sdcard/log.txt");
+                    new MyTask("video").execute(file);
 				}
 			}); 
 
@@ -168,7 +176,7 @@ public class MainActivity extends Activity {
 	  
 	  private void handleCameraVideo(Intent intent) {
 		  System.out.println("####### handleCameraVideo ####### "+currentPath);
-		  File file = new File (currentPath);
+		  File file = new File ("mnt/sdcard/log.txt");
 		  new MyTask("video").execute(file);
 	  }
 
@@ -303,13 +311,14 @@ public class MainActivity extends Activity {
 	  
 	  public void uploadFile(String type,File file) {
 
+
 	        try {
 	        	HttpParams httpParams = new BasicHttpParams();
 	        	httpParams.setParameter(CoreProtocolPNames.PROTOCOL_VERSION, HttpVersion.HTTP_1_1);
 	            
 	            SchemeRegistry registry = new SchemeRegistry();
 	            registry.register(new Scheme("http", new PlainSocketFactory(), 80));
-	            registry.register(new Scheme("https", new EasySSLSocketFactory(), 443));
+	            //registry.register(new Scheme("https", new EasySSLSocketFactory(), 443));
 	            
 	            //http://download.java.net/jdk8/docs/technotes/guides/security/jsse/JSSERefGuide.html
 	            
@@ -318,17 +327,19 @@ public class MainActivity extends Activity {
 	            HttpClient httpClient = new DefaultHttpClient(manager, httpParams); 
 
 	            
-	            HttpPost httppost = new HttpPost(uploadurl);
-	            MultipartEntity multipartEntity = new MultipartEntity(HttpMultipartMode.BROWSER_COMPATIBLE);  
+	            HttpPost httppost = new HttpPost("http://192.168.0.101:8080/upload/");
+	            MultipartEntity multipartEntity = new MultipartEntity(HttpMultipartMode.BROWSER_COMPATIBLE);
 	            multipartEntity.addPart("upload", new FileBody(file));
-	            multipartEntity.addPart("type", new StringBody(type));
-	            multipartEntity.addPart("name", new StringBody(getUsername()));
-	            multipartEntity.addPart("device", new StringBody(getBrand()+", "+getModelName()));
-	            multipartEntity.addPart("location", new StringBody(getCountry()));
+	            //multipartEntity.addPart("type", new StringBody(type));
+	            //multipartEntity.addPart("name", new StringBody(getUsername()));
+	           // multipartEntity.addPart("device", new StringBody(getBrand()+", "+getModelName()));
+	            //multipartEntity.addPart("location", new StringBody(getCountry()));
 	            httppost.setEntity(multipartEntity);
 	            httpClient.execute(httppost);
+                Log.v("DebugURL", "Connect: CONNECT-"+uploadurl);
 	        } catch (Exception e) {
 	            e.printStackTrace();
+                Log.e("DebugURL", "error: " + e.getMessage(), e);
 	        }
 	    }
 	  
