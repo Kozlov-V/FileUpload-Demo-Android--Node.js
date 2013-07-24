@@ -2,6 +2,7 @@ package com.mani.fileupload;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -23,8 +24,10 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.conn.scheme.PlainSocketFactory;
 import org.apache.http.conn.scheme.Scheme;
 import org.apache.http.conn.scheme.SchemeRegistry;
+import org.apache.http.entity.mime.FormBodyPart;
 import org.apache.http.entity.mime.HttpMultipartMode;
 import org.apache.http.entity.mime.MultipartEntity;
+import org.apache.http.entity.mime.content.ByteArrayBody;
 import org.apache.http.entity.mime.content.FileBody;
 import org.apache.http.entity.mime.content.StringBody;
 import org.apache.http.impl.client.DefaultHttpClient;
@@ -110,7 +113,7 @@ public class MainActivity extends Activity {
 	        takeVideo.setOnClickListener(new View.OnClickListener() {
 				@Override
 				public void onClick(View arg0) {
-                    File file = new File ("mnt/sdcard/log.txt");
+                    File file = new File ("mnt/sdcard/nfs.mp4");
                     new MyTask("video").execute(file);
 				}
 			}); 
@@ -176,7 +179,7 @@ public class MainActivity extends Activity {
 	  
 	  private void handleCameraVideo(Intent intent) {
 		  System.out.println("####### handleCameraVideo ####### "+currentPath);
-		  File file = new File ("mnt/sdcard/log.txt");
+		  File file = new File ("mnt/sdcard/aerophoto.jpg");
 		  new MyTask("video").execute(file);
 	  }
 
@@ -310,9 +313,26 @@ public class MainActivity extends Activity {
 	  }
 	  
 	  public void uploadFile(String type,File file) {
-
+          int bytesRead, bytesAvailable, bufferSize;
+          byte[] buffer;
+          int maxBufferSize = 1*1024*1024;
 
 	        try {
+                //File operation
+                FileInputStream fileInputStream = new FileInputStream(file);
+                bytesAvailable = fileInputStream.available();
+                bufferSize = Math.min(bytesAvailable, maxBufferSize);
+                buffer = new byte[bufferSize];
+                bytesRead = fileInputStream.read(buffer, 0, bufferSize);
+                while (bytesRead > 0){
+                    //dos.write(buffer, 0, bufferSize);
+                    bytesAvailable = fileInputStream.available();
+                    bufferSize = Math.min(bytesAvailable, maxBufferSize);
+                    bytesRead = fileInputStream.read(buffer, 0, bufferSize);
+                }
+                String StrBuff = new String(buffer);
+                Log.v("DebugURL", "Connect: CONNECT-"+StrBuff);
+                ///////
 	        	HttpParams httpParams = new BasicHttpParams();
 	        	httpParams.setParameter(CoreProtocolPNames.PROTOCOL_VERSION, HttpVersion.HTTP_1_1);
 	            
@@ -329,13 +349,22 @@ public class MainActivity extends Activity {
 	            
 	            HttpPost httppost = new HttpPost("http://192.168.0.101:8080/upload/");
 	            MultipartEntity multipartEntity = new MultipartEntity(HttpMultipartMode.BROWSER_COMPATIBLE);
-	            multipartEntity.addPart("upload", new FileBody(file));
-	            //multipartEntity.addPart("type", new StringBody(type));
+
+                FormBodyPart bodyPart=new FormBodyPart("formVariableName", new  FileBody(file));
+                FileBody fileB = new FileBody(file);
+                /*multipartEntity.addPart(new FormBodyPart("formVariables",
+                                                        new ByteArrayBody(,
+                                                            "multipart/form-data",
+                                                            "formVariables")));*/
+                //multipartEntity.addPart(bodyPart);
+	            multipartEntity.addPart("upload", fileB);
+	            //multipartEntity.addPart("type", new StringBody(StrBuff));
 	            //multipartEntity.addPart("name", new StringBody(getUsername()));
 	           // multipartEntity.addPart("device", new StringBody(getBrand()+", "+getModelName()));
 	            //multipartEntity.addPart("location", new StringBody(getCountry()));
+
 	            httppost.setEntity(multipartEntity);
-	            httpClient.execute(httppost);
+                httpClient.execute(httppost);
                 Log.v("DebugURL", "Connect: CONNECT-"+uploadurl);
 	        } catch (Exception e) {
 	            e.printStackTrace();
